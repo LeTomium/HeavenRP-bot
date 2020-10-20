@@ -4,7 +4,8 @@
   "description": "Gère les items dans le RP.",
   "main": "index.js",
   "scripts": {
-    "start": "node ."
+    "start": "nodemon . --ignore '*.json'",
+    "run": "node ."
   },
   "author": "LeTomium",
   "license": "ISC",
