@@ -1,0 +1,16 @@
+{
+  "name": "heavenrp",
+  "version": "1.0.0",
+  "description": "Gère les items dans le RP.",
+  "main": "index.js",
+  "scripts": {
+    "start": "node ."
+  },
+  "author": "LeTomium",
+  "license": "ISC",
+  "dependencies": {
+    "discord.js": "^12.3.1",
+    "fs": "0.0.1-security",
+    "simple-database-json": "^1.0.2"
+  }
+}
