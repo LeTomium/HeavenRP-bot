@@ -13,6 +13,7 @@ module.exports = {
         const subcommandName = args[0],
               itemname = args[1]
         var count = parseInt(args[2]) || 1
+        let error = false
 
         if (itemname === undefined)
             throw `Error: Vous devez saisir un nom d'item.`
@@ -25,8 +26,10 @@ module.exports = {
         db.select("items", record => record["name"] === itemname, (err, data) => {
             if (err)
                 throw err
-            if (data.length === 0)
-                throw `Error: Aucun item ne répond à ce nom.`
+            if (data.length === 0) {
+                error = `Error: Aucun item ne répond à ce nom.`
+                return
+            }
             item = data[0]
         })
 
@@ -38,20 +41,28 @@ module.exports = {
                 if (player.items.some((item) => item.name === itemname)) {
                     if (data.find((item) => item.name === itemname).count >= count) {
                         data.find((item) => item.name === itemname).count -= count
-                    } else
-                        throw `Error: Vous ne possédez pas asser de ${itemname}.`
-                } else
-                    throw `Error: Vous ne possédez pas de ${itemname}.`
+                    } else {
+                        error = `Error: Vous ne possédez pas asser de ${itemname}.`
+                        return
+                    }
+                } else {
+                    error = `Error: Vous ne possédez pas de ${itemname}.`
+                    return
+                }
                 db.update("players", {
                     money: player.money + item.price * count,
                     items: data
                 }, record => record["userid"] === player.userid, err => {
                     if (err)
                         throw err
-                    throw `Success: ${count > 1 ? "Vos" : "Votre"} item${count > 1 ? "s ont" : " a"} bien été vendu${count > 1 ? "s" : ""}.`
                 })
-            } else
-                throw `Error: Cet item n'est pas en vente.`
+            } else {
+                error = `Error: Cet item n'est pas en vente.`
+                return
+            }
         })
+        if (error)
+            throw error
+        throw `Success: ${count > 1 ? "Vos" : "Votre"} item${count > 1 ? "s ont" : " a"} bien été vendu${count > 1 ? "s" : ""}.`
     }
 }

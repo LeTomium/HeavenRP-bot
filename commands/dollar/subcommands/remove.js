@@ -14,7 +14,7 @@ module.exports = {
         var count = parseInt(args[2])
 
         if (members.length === 0)
-            throw `Error: Vous devez mentionner un joueur/role (avec au moins un membre) puis un nom d'item.`
+            throw `Error: Vous devez mentionner un joueur/role (avec au moins un membre) puis un nombre (de dollar).`
 
         if (isNaN(count) || count < 0)
             throw `Error: Vous devez saisir un nombre positif ou nul.`

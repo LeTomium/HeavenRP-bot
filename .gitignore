@@ -1,0 +1,5 @@
+.vscode/
+config/token.json
+node_modules/
+docs/
+databases/*.json

@@ -13,6 +13,7 @@ module.exports = {
         const subcommandName = args[0],
               itemname = args[1]
         var count = parseInt(args[2]) || 1
+        let error = false
 
         if (itemname === undefined)
             throw `Error: Vous devez saisir un nom d'item.`
@@ -26,10 +27,12 @@ module.exports = {
             if (err)
                 throw err
             if (data.length === 0)
-                throw `Error: Aucun item ne répond à ce nom.`
+                error = `Error: Aucun item ne répond à ce nom.`
             else
                 item = data[0]
         })
+        if (error)
+            throw error
 
         db.each("players", record => record["userid"] === msg.author.id, (err, player) => {
             if (err) 
@@ -45,12 +48,14 @@ module.exports = {
                     db.update("players", { money: player.money - item.price * count, items: data }, record => record["userid"] === player.userid, err => {
                         if (err)
                             throw err
-                        throw `Success: Item acheté avec succès.`
                     })
                 } else
-                    throw `Error: Vous ne possédez pas assez d'argent pour acheter cet item.`
+                    error = `Error: Vous ne possédez pas assez d'argent pour acheter cet item.`
             } else
-                throw `Error: Cet item n'est pas en vente.`
+                error = `Error: Cet item n'est pas en vente.`
         })
+        if (error)
+            throw error
+        throw `Success: Item acheté avec succès.`
     }
 }

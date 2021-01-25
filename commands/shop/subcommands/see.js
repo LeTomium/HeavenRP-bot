@@ -15,6 +15,7 @@ module.exports = {
     execute: (client, msg, args) => {
         const subcommandName = args[0],
               itemname = args[1]
+        let error = false
 
         const db = client.databases.get(msg.guild.id)
         const msgEmbedTemplate = new MessageEmbed()
@@ -47,8 +48,10 @@ module.exports = {
             db.select("items", record => record["name"] === itemname, (err, data) => {
                 if (err)
                     throw err
-                if (data.length === 0)
-                    throw `Error: Aucun item ne répond à ce nom.`
+                if (data.length === 0) {
+                    error = `Error: Aucun item ne répond à ce nom.`
+                    return
+                }
                 else
                     item = data[0]
             })
@@ -66,7 +69,8 @@ module.exports = {
                 msgEmbedTemplate.setTitle(`**${item.name}** : ${price}`)  
             })
         }
-
+        if (error)
+            throw error
         msg.channel.send({ embed: msgEmbedTemplate })
     }
 }

@@ -13,6 +13,7 @@ module.exports = {
         const members = client.getUsersFromMention(args[1], msg),
               itemname = args[2]
         var count = parseInt(args[3]) || 1
+        let error = false
 
         if (members.length === 0)
             throw `Error: Vous devez mentionner un joueur/role (avec au moins un membre) puis un nom d'item.`
@@ -24,23 +25,26 @@ module.exports = {
             throw `Error: Vous devez saisir un nombre positif non nul.`
             
         const db = client.databases.get(msg.guild.id)
-
         db.count("items", record => record["name"] === itemname, (err, count) => {
             if (err)
                 throw err
             if (count === 0)
-                throw `Error: Aucun item ne répond à ce nom.`
+                error = `Error: Aucun item ne répond à ce nom.`
         })
+        if (error)
+            throw error
         members.forEach((member) => {
             db.each("players", record => record["userid"] === member.id, (err, player) => {
                 if (err)
                     throw err
                 let data = player.items
+                console.log(data);
                 if (player.items.some((item) => item.name === itemname)) {
                     data.find((item) => item.name === itemname).count += count
                 } else {
                     data.push({ name: itemname, count: count })
                 }
+                console.log(data);
                 db.update("players", { items: data }, record => record["userid"] === player.userid, err => {
                     if (err)
                         throw err

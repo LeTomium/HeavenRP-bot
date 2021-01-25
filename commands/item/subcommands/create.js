@@ -18,12 +18,12 @@ module.exports = {
             throw `Error: Vous devez saisir un nom d'item.`
 
         const db = client.databases.get(msg.guild.id)
-
+        let error = `Success: Item créé avec succès.`
         db.count("items", record => record.name === itemname, (err, count) => {
             if (err)
                 throw err
             if (count > 0)
-                throw `Error: Nom d'item déjà utilisé.`
+                error = `Error: Nom d'item déjà utilisé.`
             
             db.insert("items", {
                 name: itemname,
@@ -31,8 +31,8 @@ module.exports = {
             }, err => {
                 if (err)
                     throw err
-                throw `Success: Item créé avec succès.`
             })
         })
+        throw error
     }
 }

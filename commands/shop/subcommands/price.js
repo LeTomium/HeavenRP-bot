@@ -13,7 +13,8 @@ module.exports = {
         const subcommandName = args[0],
               itemname = args[1]
         var price = parseInt(args[2])
-
+        let error = false
+        
         if (itemname === undefined)
             throw `Error: Vous devez saisir un nom d'item.`
         if (isNaN(price))
@@ -22,17 +23,18 @@ module.exports = {
             price = -1
 
         const db = client.databases.get(msg.guild.id)
-
         db.count("items", record => record.name === itemname, (err, count) => {
             if (err)
                 throw err
             if (count < 1)
-                throw `Error: Aucun item ne répond à ce nom.`
+                error = `Error: Aucun item ne répond à ce nom.`
         })
+        if (error)
+            throw error
         db.update("items", { price: price }, record => record["name"] === itemname, err => {
             if (err)
                 throw err
-            throw `Success: Le prix de l'item à bien été changé.`
         })
+        throw `Success: Le prix de l'item à bien été changé.`
     }
 }

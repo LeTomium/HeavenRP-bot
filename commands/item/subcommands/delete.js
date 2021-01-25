@@ -12,18 +12,20 @@ module.exports = {
     execute: (client, msg, args) => {
         const subcommandName = args[0],
               itemname = args[1]
+        let error = false
 
         if (itemname === undefined)
             throw `Error: Vous devez saisir un nom d'item.`
 
         const db = client.databases.get(msg.guild.id)
-
         db.count("items", record => record.name === itemname, (err, count) => {
             if (err)
                 throw err
             if (count < 1)
-                throw `Error: Aucun item ne répond à ce nom.`
+                error = `Error: Aucun item ne répond à ce nom.`
         })
+        if (error)
+            throw error
             
         db.each("players", record => true, (err, player) => {
             if (err)
@@ -41,7 +43,7 @@ module.exports = {
         db.delete("items", record => record["name"] === itemname, err => {
             if (err)
                 throw err
-            throw `Success: Item supprimé avec succès.`
-        })
+            })
+        throw `Success: Item supprimé avec succès.`
     }
 }
