@@ -1,61 +1,86 @@
-const config = require("../../../config/default.json")
-const path = require("path")
-const name = path.basename(__filename).slice(0, path.basename(__filename).lastIndexOf(".")),
-      dirname = path.dirname(name).split(path.sep).pop()
+const { Database } = require("sqlite3")
+const { CommandError, Success } = require("../../../src/errors")
+const Util = require("../../../src/util")
 
 module.exports = {
-    name: name,
-    command: dirname,
+    name: "buy",
+    command: "shop",
     permission: "everyone",
-    usage: `buy [itemname] [count=1]`,
-    description: `Achète *n* item(s).`,
+    channelType: ["text"],
+    usage: `buy <count> <itemname>`,
+    requireArgs: true,
+    description: `Achète *n* items spécifiés du salon courent`,
     execute: (client, msg, args) => {
-        const subcommandName = args[0],
-              itemname = args[1]
-        var count = parseInt(args[2]) || 1
-        let error = false
 
-        if (itemname === undefined)
-            throw `Error: Vous devez saisir un nom d'item.`
+        const count = args.get("count")
+        if (count <= 0)
+            return
 
-        if (count < 1)
-            throw `Error: Vous devez saisir un nombre positif non nul.`
-            
-        const db = client.databases.get(msg.guild.id)
-        var item
-        db.select("items", record => record["name"] === itemname, (err, data) => {
-            if (err)
-                throw err
-            if (data.length === 0)
-                error = `Error: Aucun item ne répond à ce nom.`
-            else
-                item = data[0]
-        })
-        if (error)
-            throw error
+        const db = new Database("main.db", err => {
+            if (!err) {
 
-        db.each("players", record => record["userid"] === msg.author.id, (err, player) => {
-            if (err) 
-                throw err
-            if (item.price > 0) {
-                if (player.money >= item.price * count) {
-                    let data = player.items
-                    if (player.items.some((item) => item.name === itemname)) {
-                        data.find((item) => item.name === itemname).count += count
-                    } else {
-                        data.push({ name: itemname, count: count })
-                    }
-                    db.update("players", { money: player.money - item.price * count, items: data }, record => record["userid"] === player.userid, err => {
-                        if (err)
-                            throw err
-                    })
-                } else
-                    error = `Error: Vous ne possédez pas assez d'argent pour acheter cet item.`
+                const itemname = args.get("itemname")
+                const member = msg.member
+                db.get(`SELECT rowid, price FROM Items WHERE name = ? AND channelId = ?`, [itemname, msg.channel.id], (err, item) => {
+                    if (!err) {
+                        if (item) { // Vérifie si l'item existe déjà
+                            if (item.price >= 0) {// Vérifie si l'item est en vente
+
+                                db.get(`SELECT * FROM Players WHERE userId = ? AND guildId = ?`, [member.id, member.guild.id], (err, player) => {
+
+                                    if (!err) {
+                                        if (player) { // Vérifie si l'utilisateur est un joueur
+
+                                            const total = player.dollars - item.price * count
+                                            if (player.dollars >= item.price * count) {
+
+                                                db.run(`UPDATE Players SET dollars = ? WHERE userId = ? AND guildId = ?`, [total, member.id, member.guild.id], err => {
+                                                    if (!err) {
+                                                        const itemId = item.rowid
+                                                        db.get(`SELECT rowid, count FROM Stacks WHERE userId = ? AND guildId = ? AND itemId = ?`, [member.id, member.guild.id, itemId], (err, stack) => {
+                            
+                                                            if (!err) {
+                                                                
+                                                                if (stack) {
+                                                                    db.run(`UPDATE Stacks SET count = ?, updatedAt = DATETIME("now") WHERE userId = ? AND guildId = ? AND itemId = ?`, [stack.count + count, member.id, member.guild.id, itemId], err => {
+                                                                        if (!err) {
+                                                                            Util.Log.append("logs.md", `${count} \`${itemname}\` has been bought by player \`${member.id}\` from the guild \`${member.guild.id}\`, from the channel \`${msg.channel.id}\``)
+                                                                            Util.report(msg, new Success(`${count} ${itemname} ont été achetés par ${member.nickname || member.user.username}`))
+                                                                        } else
+                                                                            Util.report(msg, err)
+                                                                    })
+                                                                } else {
+                                                                    db.run(`INSERT INTO Stacks (userId, guildId, itemId, count, updatedAt) VALUES (?, ?, ?, ?, DATETIME("now"))`, [member.id, member.guild.id, itemId, count], err => {
+                                                                        if (!err) {
+                                                                            Util.Log.append("logs.md", `${count} \`${itemname}\` has been bought by player \`${member.id}\` from the guild \`${member.guild.id}\`, from the channel \`${msg.channel.id}\``)
+                                                                            Util.report(msg, new Success(`${count} ${itemname} ont été achetés par ${member.nickname || member.user.username}`))
+                                                                        } else
+                                                                            Util.report(msg, err)
+                                                                    })
+                                                                }
+                                                            } else
+                                                                Util.report(msg, err) 
+                                                        })
+                                                    } else
+                                                        Util.report(msg, err)
+                                                })
+                                            } else
+                                                Util.report(msg, new CommandError(`Il vous manque ${Math.abs(total)} $ pour acheter ${count} ${itemname}\n(${itemname} vaut ${item.price} $ actuellement)`))
+                                        } else
+                                            Util.report(msg, new CommandError(`Vous devez faire partie du jeu pour executer cette commande`))
+                                    } else
+                                        Util.report(msg, err)
+                                })
+                            } else
+                                Util.report(msg, new CommandError(`Cet item n'est pas en vente`))
+                        } else
+                            Util.report(msg, new CommandError(`Cet item n'existe pas dans ce salon`))
+                    } else
+                        Util.report(msg, err)
+                })
             } else
-                error = `Error: Cet item n'est pas en vente.`
+                Util.report(msg, err)                
         })
-        if (error)
-            throw error
-        throw `Success: Item acheté avec succès.`
+        db.close()
     }
 }

@@ -6,57 +6,61 @@
 
 Gère les items dans le RP.
 
-| Subcommand | Usage                                          | Permissions | Description                                              |
-|------------|------------------------------------------------|-------------|----------------------------------------------------------|
-| create     | `!item create [itemname]`                      | admin/modos | Crée un item.                                            |
-| delete     | `!item delete [itemname]`                      | admin/modos | Supprime un item.                                        |
-| give       | `!item give [@username] [itemname] [count=1]`  | admin/modos | Ajoute *n* item(s) à *@username*.                        |
-| clear      | `!item clear [@username] [itemname] [count=1]` | admin/modos | Retire *n* item(s) à *@username*.                        |
-| use        | `!item use [itemname] [count=1]`               | everyone    | Utilise *n* item(s).                                     |
-| see        | `!item see [@username] [itemname]`             | everyone    | Affiche le nombre d'item de *@username*.                 |
-| ×, help    | `!item help`                                   | everyone    | Affiche les informations concernant la commande `!item`. |
+| Subcommand | Usage                                        | Permissions | Description                                              |
+|:----------:|----------------------------------------------|:-----------:|----------------------------------------------------------|
+| create     | `!item create <itemname>`                    | admin       | Crée un item avec le nom spécifié dans le salon courent  |
+| delete     | `!item delete <itemname>`                    | admin       | Supprime l'item spécifié dans le salon courent           |
+| price      | `!item price <itemname> <count>`             | admin       | Change le prix de l'item spécifié du salon courent       |
+| give       | `!item give <count> <itemname> <@mention>`   | admin       | Donne *n* items spécifiés du salon courent à *@mention*  |
+| remove     | `!item remove <count> <itemname> <@mention>` | admin       | Retire *n* items spécifiés du salon courent à *@mention* |
+| use        | `!item use <count> <itemname>`               | everyone    | Utilise *n* items spécifiés du salon courent             |
 
-### La commande *inventory*
+### La commande *inventory* ou *inv*
 
 Gère les inventaires dans le RP.
 
-| Subcommand | Usage                          | Permissions | Description                                                   |
-|------------|--------------------------------|-------------|---------------------------------------------------------------|
-| clear      | `!inventory clear [@username]` | admin/modos | Réinitialise l'inventaire de *@username*.                     |
-| see        | `!inventory see`               | everyone    | Affiche son propre inventaire.                                |
-|            | `!inventory see [@username]`   | everyone    | Affiche l'inventaire de *@username*.                          |
-| ×, help    | `!inventory help`              | everyone    | Affiche les informations concernant la commande `!inventory`. |
+| Subcommand | Usage                         | Permissions | Description                                         |
+|:----------:|-------------------------------|:-----------:|-----------------------------------------------------|
+| clear      | `!inventory clear <@mention>` | admin       | Retire tous les items de l'inventaire de *@mention* |
+| see        | `!inventory see <@mention?>`  | admin       | Affiche l'inventaire de *@mention*                  |
+| see        | `!inventory see`              | everyone    | Affiche son propre inventaire                       |
 
 ### La commande *dollar*
 
 Gère les dollars dans le RP.
 
-| Subcommand | Usage                                | Permissions | Description                       |
-|------------|--------------------------------------|-------------|-----------------------------------|
-| give       | `!dollar give [@username] [count]`   | admin/modos | Donne *n* dollars à *@username*.  |
-| remove     | `!dollar remove [@username] [count]` | admin/modos | Retire *n* dollars à *@username*. |
-| set        | `!dollar set [@username] [count]`    | admin/modos | Place *n* dollars à *@username*.  |
+| Subcommand | Usage                               | Permissions | Description                     |
+|:----------:|-------------------------------------|:-----------:|---------------------------------|
+| give       | `!dollar give <count> <@mention>`   | admin       | Donne *n* dollars à *@mention*  |
+| remove     | `!dollar remove <count> <@mention>` | admin       | Retire *n* dollars à *@mention* |
+| set        | `!dollar set <count> <@mention>`    | admin       | Place *n* dollars à *@mention*  |
 
 ### La commande *shop*
 
 Communique avec le shop dans le RP.
 
-| Subcommand | Usage                              | Permissions | Description                                              |
-|------------|------------------------------------|-------------|----------------------------------------------------------|
-| see        | `!shop see`                        | everyone    | Affiche toutes informations de tous les items du shop.   |
-|            | `!shop see [itemname]`             | everyone    | Affiche les informations de l'item (prix).               |
-| price      | `!shop price [itemname] <count=0>` | admin/modos | Change le prix de l'item.                                |
-| buy        | `!shop buy [itemname] [count=1]`   | everyone    | Achète *n* item(s).                                      |
-| sell       | `!shop sell [itemname] [count=1]`  | everyone    | Vend *n* item(s).                                        |
-| ×, help    | `!shop help`                       | everyone    | Affiche les informations concernant la commande `!shop`. |
+| Subcommand | Usage                                | Permissions | Description                                                          |
+|:----------:|--------------------------------------|:-----------:|----------------------------------------------------------------------|
+| buy        | `!shop buy <count> <itemname>`       | everyone    | Achète *n* items spécifiés du salon courent                          |
+| sell       | `!shop sell <count> <itemname>`      | everyone    | Vend *n* items spécifiés du salon courent                            |
+| see        | `!shop see`                          | everyone    | Affiche la liste des informations de tous les items du salon courent |
 
 ### La commande *help*
 
-Affiche les informations des commandes dans le RP.
+| Usage                  | Permissions | Description                                                   |
+|------------------------|:-----------:|---------------------------------------------------------------|
+| `!help`                | everyone    | Affiche les informations de toutes les commandes              |
+| `!help <commandname>`  | everyone    | Affiche les informations concernant la commande *commandname* |
 
-| Subcommand | Usage             | Permissions | Description                                                   |
-|------------|-------------------|-------------|---------------------------------------------------------------|
-| item       | `!help item`      | everyone    | Affiche les informations concernant la commande `!item`.      |
-| inventory  | `!help inventory` | everyone    | Affiche les informations concernant la commande `!inventory`. |
-| dollar     | `!help dollar`    | everyone    | Affiche les informations concernant la commande `!dollar`     |
-| ×          | `!help`           | everyone    | Affiche les informations concernant la commande `!help`.      |
+## Légendes
+
+### Les différents types arguments
+
+- `<count>` : est un nombre entier (>= -1) qui représente un nombre d'item ou un prix
+- `<itemname>` : est une chaine de caractère (sans espace) qui représente un nom d'item
+- `<@mention>` : est une mention d'un utilisateur ou d'un rôle qui représente des joueurs non-bot
+- `<commandname>` : est une chaine de caractère (sans espace) qui représente un nom de commande
+
+### Syntaxe
+- `<param?>` : le paramètre est optionel
+- `<param=value>` : le paramètre prend `value` comme valeur si il n'est pas spécifié

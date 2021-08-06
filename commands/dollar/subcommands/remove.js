@@ -1,37 +1,48 @@
-const config = require("../../../config/default.json")
-const path = require("path")
-const name = path.basename(__filename).slice(0, path.basename(__filename).lastIndexOf(".")),
-      dirname = path.dirname(name).split(path.sep).pop()
+const { Database }= require("sqlite3")
+const { Success } = require("../../../src/errors")
+const Util = require("../../../src/util")
 
 module.exports = {
-    name: name,
-    command: dirname,
+    name: "remove",
+    command: "dollar",
+    aliases: ["clear"],
     permission: "admin",
-    usage: `remove [@username] [count=1]`,
-    description: `Retire *n* :money_with_wings: à *@username*.`,
+    channelType: ["text"],
+    usage: `remove <count> <@mention>`,
+    requireArgs: true,
+    description: `Retire *n* $ à *@mention*`,
     execute: (client, msg, args) => {
-        const members = client.getUsersFromMention(args[1], msg)
-        var count = parseInt(args[2])
+        
+        const count = args.get("count")
+        if (count < 0)
+            return
 
-        if (members.length === 0)
-            throw `Error: Vous devez mentionner un joueur/role (avec au moins un membre) puis un nombre (de dollar).`
+        const db = new Database("main.db", err => {
+            if (!err) {
 
-        if (isNaN(count) || count < 0)
-            throw `Error: Vous devez saisir un nombre positif ou nul.`
-            
-        const db = client.databases.get(msg.guild.id)
+                args.get("members").forEach(member => {
+                    db.get(`SELECT dollars FROM Players WHERE userId = ? AND guildId = ?`, [member.id, member.guild.id], (err, player) => {
+                        if (!err) {
 
-        members.forEach((member) => {
-            db.each("players", record => record["userid"] === member.id, (err, player) => {
-                if (err)
-                    throw err
-                count = player.money - count > 0 ? player.money - count : 0
-                db.update("players", { money: count }, record => record["userid"] === player.userid, err => {
-                    if (err)
-                        throw err
+                            var dollars = player.dollars - count
+                            if (dollars < 0)
+                                dollars = 0
+
+                            db.run(`UPDATE Players SET dollars = ? WHERE userId = ? AND guildId = ?`, [dollars, member.id, member.guild.id], err => {
+                                if (!err) {
+                                    Util.Log.append("logs.md", `${dollars > 0 ? count : player.dollars} $ removed to player \`${member.id}\` from the guild \`${member.guild.id}\`, from the channel \`${msg.channel.id}\``)
+                                    Util.report(msg, new Success(`${dollars > 0 ? count : player.dollars} $ ont bien été retirés à ${member.nickname || member.user.username}`))
+                                } else
+                                    Util.report(msg, err)
+                            })
+                        } else
+                            Util.report(msg, err)
+                    })
                 })
-            })
+            } else
+                Util.report(msg, err)
+                
+            db.close()
         })
-        throw `Success: :money_with_wings: placé avec succès.`
     }
 }

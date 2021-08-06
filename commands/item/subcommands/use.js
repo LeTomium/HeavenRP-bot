@@ -1,62 +1,56 @@
-const config = require("../../../config/default.json")
-const path = require("path")
-const name = path.basename(__filename).slice(0, path.basename(__filename).lastIndexOf(".")),
-      dirname = path.dirname(name).split(path.sep).pop()
+const { Database } = require("sqlite3")
+const { CommandError, Success } = require("../../../src/errors")
+const Util = require("../../../src/util")
 
 module.exports = {
-    name: name,
-    command: dirname,
+    name: "use",
+    command: "item",
     permission: "everyone",
-    usage: `use [itemname] [count=1]`,
-    description: `Utilise *n* item(s).`,
+    channelType: ["text"],
+    usage: `use <count> <itemname>`,
+    requireArgs: true,
+    description: `Utilise *n* items spécifiés du salon courent`,
     execute: (client, msg, args) => {
-        const subcommandName = args[0],
-              itemname = args[1]
-        var count = parseInt(args[2]) || 1
-        let error = false
+        
+        const count = args.get("count")
+        if (count < 0)
+            return
 
-        if (itemname === undefined)
-            throw `Error: Vous devez saisir un nom d'item.`
+        const db = new Database("main.db", err => {
+            if (!err) {
 
-        if (count < 1)
-            throw `Error: Vous devez saisir un nombre positif non nul.`
-            
-        const db = client.databases.get(msg.guild.id)
-        db.count("items", record => record["name"] === itemname, (err, count) => {
-            if (err)
-                throw err
-            if (count === 0) {
-                error = `Error: Aucun item ne répond à ce nom.`
-                return
-            }
-                
-            db.each("players", record => record["userid"] === msg.author.id, (err, player) => {
-                if (err)
-                    throw err
-                let data = player.items
-                if (data.some((item) => item.name === itemname)) {
-                    let totalCount = data.find((item) => item.name === itemname).count
-                    console.log(totalCount - count, totalCount, count)
-                    if (totalCount - count >= 0)
-                        totalCount -= count
-                    else {
-                        error = `Error: Vous ne possédez pas assez de ${itemname}.`
-                        return
-                    }
+                const itemname = args.get("itemname")
+                const member = msg.member
+                db.get(`SELECT rowid FROM Items WHERE name = ? AND channelId = ?`, [itemname, msg.channel.id], (err, item) => {
+                    if (!err) {
+                        if (item) { // Vérifie si l'item existe déjà
+                            const itemId = item.rowid
+                            db.get(`SELECT rowid, count FROM Stacks WHERE userId = ? AND guildId = ? AND itemId = ?`, [member.id, member.guild.id, itemId], (err, stack) => {
 
-                    if (totalCount === 0)
-                        data.splice(data.findIndex((item) => item.name === itemname), 1)
-                    else
-                        data.find((item) => item.name === itemname).count = totalCount  
-                }
-                db.update("players", { items: data }, record => record["userid"] === player["userid"], err => {
-                    if (err)
-                        throw err
-                    })
+                                if (!err) {
+                                    if (stack && stack.count - count >= 0) { // Vérifie si le joueur possède des items spécifiés
+
+                                        db.run(`UPDATE Stacks SET count = ?, updatedAt = DATETIME("now") WHERE userId = ? AND guildId = ? AND itemId = ?`, [stack.count - count, member.id, member.guild.id, itemId], err => {
+                                            if (!err) {
+                                                Util.Log.append("logs.md", `${count} \`${itemname}\` used by player \`${member.id}\` from the guild \`${member.guild.id}\`, from the channel \`${msg.channel.id}\``)
+                                                Util.report(msg, new Success(`${count} ${itemname} ont bien été utilisés par ${member.nickname || member.user.username}`))
+                                            } else
+                                                Util.report(msg, err)
+                                        })
+                                    } else {
+                                        Util.report(msg, new CommandError(`Vous ne possédez pas assez de ${itemname}`))
+                                    }
+                                } else
+                                    Util.report(msg, err)  
+                            })
+                        } else
+                            Util.report(msg, new CommandError(`Cet item n'existe pas dans ce salon`))
+                    } else
+                        Util.report(msg, err)
                 })
-            })
-        if (error)
-            throw error
-        throw `Success: Item utilisé avec succès.`
+            } else
+                Util.report(msg, err)                
+        })
+        db.close()
     }
 }

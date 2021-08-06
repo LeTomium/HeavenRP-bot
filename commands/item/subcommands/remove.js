@@ -1,19 +1,20 @@
-const { Database }= require("sqlite3")
+const { Database } = require("sqlite3")
 const { CommandError, Success } = require("../../../src/errors")
 const Util = require("../../../src/util")
 
 module.exports = {
-    name: "give",
+    name: "remove",
     command: "item",
+    aliases: ["clear"],
     permission: "admin",
     channelType: ["text"],
-    usage: `give <count> <itemname> <@mention>`,
+    usage: `remove <count> <itemname> <@mention>`,
     requireArgs: true,
-    description: `Donne *n* items spécifiés du salon courent à *@mention*`,
-    execute: (client, msg, args) => {
+    description: `Retire *n* items du salon courent à *@mention*`,
+    execute: (client, msg, args) => {           
         
         const count = args.get("count")
-        if (count < 0)
+        if (count <= 0)
             return
 
         const db = new Database("main.db", err => {
@@ -28,20 +29,13 @@ module.exports = {
                                 db.get(`SELECT rowid, count FROM Stacks WHERE userId = ? AND guildId = ? AND itemId = ?`, [member.id, member.guild.id, itemId], (err, stack) => {
 
                                     if (!err) {
+                                        const total = stack.count - count >= 0 ? stack.count - count : 0
+                                        
                                         if (stack) {
-                                            
-                                            db.run(`UPDATE Stacks SET count = ?, updatedAt = DATETIME("now") WHERE userId = ? AND guildId = ? AND itemId = ?`, [stack.count + count, member.id, member.guild.id, itemId], err => {
+                                            db.run(`UPDATE Stacks SET count = ?, updatedAt = DATETIME("now") WHERE userId = ? AND guildId = ? AND itemId = ?`, [total, member.id, member.guild.id, itemId], err => {
                                                 if (!err) {
-                                                    Util.Log.append("logs.md", `${count} \`${itemname}\` given to player \`${member.id}\` from the guild \`${member.guild.id}\`, from the channel \`${msg.channel.id}\``)
-                                                    Util.report(msg, new Success(`${count} ${itemname} ont bien été donnés à ${member.nickname || member.user.username}`))
-                                                } else
-                                                    Util.report(msg, err)
-                                            })
-                                        } else {
-                                            db.run(`INSERT INTO Stacks (userId, guildId, itemId, count, updatedAt) VALUES (?, ?, ?, ?, DATETIME("now"))`, [member.id, member.guild.id, itemId, count], err => {
-                                                if (!err) {
-                                                    Util.Log.append("logs.md", `${count} \`${itemname}\` given to player \`${member.id}\` from the guild \`${member.guild.id}\`, from the channel \`${msg.channel.id}\``)
-                                                    Util.report(msg, new Success(`${count} ${itemname} ont bien été donnés à ${member.nickname || member.user.username}`))
+                                                    Util.Log.append("logs.md", `${count} ${itemname} cleared to player \`${member.id}\` from the guild \`${member.guild.id}\`, from the channel \`${msg.channel.id}\``)
+                                                    Util.report(msg, new Success(`${count} ${itemname} ont bien été rétirés à ${member.nickname || member.user.username}`))
                                                 } else
                                                     Util.report(msg, err)
                                             })

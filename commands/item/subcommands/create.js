@@ -1,38 +1,42 @@
-const config = require("../../../config/default.json")
-const path = require("path")
-const name = path.basename(__filename).slice(0, path.basename(__filename).lastIndexOf(".")),
-      dirname = path.dirname(name).split(path.sep).pop()
+const { Database }= require("sqlite3")
+const { CommandError, Success } = require("../../../src/errors")
+const Util = require("../../../src/util")
 
 module.exports = {
-    name: name,
-    command: dirname,
+    name: "create",
+    command: "item",
     aliases: ["add"],
     permission: "admin",
-    usage: `create [itemname]`,
-    description: `Crée un item.`,
+    channelType: ["text"],
+    usage: `create <itemname>`,
+    requireArgs: true,
+    description: `Crée un item avec le nom spécifié dans le salon courent`,
     execute: (client, msg, args) => {
-        const subcommandName = args[0],
-              itemname = args[1]
+        const db = new Database("main.db", err => {
+            if (!err) {
+                
+                const itemname = args.get("itemname")
+                const member = msg.member
+                db.get(`SELECT rowid FROM Items WHERE name = ? AND channelId = ?`, [itemname], (err, item) => {
 
-        if (itemname === undefined)
-            throw `Error: Vous devez saisir un nom d'item.`
+                    if (!err) {
+                        if (!item) { // Vérifie si l'item existe déjà
 
-        const db = client.databases.get(msg.guild.id)
-        let error = `Success: Item créé avec succès.`
-        db.count("items", record => record.name === itemname, (err, count) => {
-            if (err)
-                throw err
-            if (count > 0)
-                error = `Error: Nom d'item déjà utilisé.`
-            
-            db.insert("items", {
-                name: itemname,
-                price: -1
-            }, err => {
-                if (err)
-                    throw err
-            })
+                            db.run(`INSERT INTO Items (creatorId, guildId, channelId, name, createdAt, updatedAt) VALUES (?, ?, ?, ?, DATETIME("now"), DATETIME("now"))`, [member.id, member.guild.id, msg.channel.id, itemname], err => {
+                                if (!err) {
+                                    Util.Log.append("logs.md", `Item \`${itemname}\` created by \`${member.id}\` from the guild \`${member.guild.id}\`, from the channel \`${msg.channel.id}\``)
+                                    Util.report(msg, new Success(`L'item ${itemname} a bien été créé`))
+                                } else
+                                    Util.report(msg, err)
+                            })
+                        } else
+                            Util.report(msg, new CommandError(`Cet item existe déjà dans ce salon`))
+                    } else
+                        Util.report(msg, err)
+                })
+            } else
+                Util.report(msg, err)
         })
-        throw error
+        db.close()
     }
 }

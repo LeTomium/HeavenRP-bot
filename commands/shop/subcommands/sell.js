@@ -1,68 +1,75 @@
+const { Database } = require("sqlite3")
 const config = require("../../../config/default.json")
-const path = require("path")
-const name = path.basename(__filename).slice(0, path.basename(__filename).lastIndexOf(".")),
-      dirname = path.dirname(name).split(path.sep).pop()
+const { CommandError, Success } = require("../../../src/errors")
+const Util = require("../../../src/util")
 
 module.exports = {
-    name: name,
-    command: dirname,
+    name: "sell",
+    command: "shop",
     permission: "everyone",
-    usage: `sell [itemname] [count=1]`,
-    description: `Vend *n* item(s).`,
+    channelType: ["text"],
+    usage: `sell <count> <itemname>`,
+    requireArgs: true,
+    description: `Vend *n* items spécifiés du salon courent`,
     execute: (client, msg, args) => {
-        const subcommandName = args[0],
-              itemname = args[1]
-        var count = parseInt(args[2]) || 1
-        let error = false
 
-        if (itemname === undefined)
-            throw `Error: Vous devez saisir un nom d'item.`
+        const count = args.get("count")
+        if (count <= 0)
+            return
 
-        if (count < 1)
-            throw `Error: Vous devez saisir un nombre positif non nul.`
-            
-        const db = client.databases.get(msg.guild.id)
-        var item
-        db.select("items", record => record["name"] === itemname, (err, data) => {
-            if (err)
-                throw err
-            if (data.length === 0) {
-                error = `Error: Aucun item ne répond à ce nom.`
-                return
-            }
-            item = data[0]
-        })
+        const db = new Database("main.db", err => {
+            if (!err) {
 
-        db.each("players", record => record["userid"] === msg.author.id, (err, player) => {
-            if (err) 
-                throw err
-            if (item.price > 0) {
-                let data = player.items
-                if (player.items.some((item) => item.name === itemname)) {
-                    if (data.find((item) => item.name === itemname).count >= count) {
-                        data.find((item) => item.name === itemname).count -= count
-                    } else {
-                        error = `Error: Vous ne possédez pas asser de ${itemname}.`
-                        return
-                    }
-                } else {
-                    error = `Error: Vous ne possédez pas de ${itemname}.`
-                    return
-                }
-                db.update("players", {
-                    money: player.money + item.price * count,
-                    items: data
-                }, record => record["userid"] === player.userid, err => {
-                    if (err)
-                        throw err
+                const itemname = args.get("itemname")
+                const member = msg.member
+                db.get(`SELECT rowid, price FROM Items WHERE name = ? AND channelId = ?`, [itemname, msg.channel.id], (err, item) => {
+                    if (!err) {
+                        if (item) { // Vérifie si l'item existe déjà
+                            if (item.price >= 0) {// Vérifie si l'item peut être vendu (si il a un prix positif)
+
+                                db.get(`SELECT * FROM Players WHERE userId = ? AND guildId = ?`, [member.id, member.guild.id], (err, player) => {
+
+                                    if (!err) {
+                                        if (player) { // Vérifie si l'utilisateur est un joueur
+
+                                            const itemId = item.rowid
+                                            db.get(`SELECT rowid, count FROM Stacks WHERE userId = ? AND guildId = ? AND itemId = ?`, [member.id, member.guild.id, itemId], (err, stack) => {
+                                                if (!err) {
+
+                                                    if (stack && stack.count >= count) { // Vérifie si le joueur a suffisamment d'item
+                                                        db.run(`UPDATE Stacks SET count = ?, updatedAt = DATETIME("now") WHERE userId = ? AND guildId = ? AND itemId = ?`, [stack.count - count, member.id, member.guild.id, itemId], err => {
+                                                            if (!err) {
+                                                                const total = player.dollars + item.price * count
+                                                                db.run(`UPDATE Players SET dollars = ? WHERE userId = ? AND guildId = ?`, [total, member.id, member.guild.id], err => {
+                                                                    if (!err) {
+                                                                        Util.Log.append("logs.md", `${count} \`${itemname}\` has been sold by player \`${member.id}\` from the guild \`${member.guild.id}\`, from the channel \`${msg.channel.id}\``)
+                                                                        Util.report(msg, new Success(`${count} ${itemname} ont été vendus par ${member.nickname || member.user.username}`))
+                                                                    } else
+                                                                        Util.report(msg, err)
+                                                                })
+                                                            } else
+                                                                Util.report(msg, err)
+                                                        })
+                                                    } else
+                                                        Util.report(msg, new CommandError(`Il vous manque ${count - stack.count} ${itemname} pour en vendre ${count}\n(${itemname} vaut ${item.price} $ actuellement)`))
+                                                } else
+                                                    Util.report(msg, err) 
+                                            })
+                                        } else
+                                            Util.report(msg, new CommandError(`Vous devez faire partie du jeu pour exécuter cette commande`))
+                                    } else
+                                        Util.report(msg, err)
+                                })
+                            } else
+                                Util.report(msg, new CommandError(`Cet item ne peut pas être vendu`))
+                        } else
+                            Util.report(msg, new CommandError(`Cet item n'existe pas dans ce salon`))
+                    } else
+                        Util.report(msg, err)
                 })
-            } else {
-                error = `Error: Cet item n'est pas en vente.`
-                return
-            }
+            } else
+                Util.report(msg, err)                
         })
-        if (error)
-            throw error
-        throw `Success: ${count > 1 ? "Vos" : "Votre"} item${count > 1 ? "s ont" : " a"} bien été vendu${count > 1 ? "s" : ""}.`
+        db.close()
     }
 }

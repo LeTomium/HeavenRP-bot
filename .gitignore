@@ -1,5 +1,8 @@
 .vscode/
-config/token.json
 node_modules/
-docs/
-databases/*.json
+
+tools/show_db/out.md
+
+config/token.json
+logs.md
+main.db

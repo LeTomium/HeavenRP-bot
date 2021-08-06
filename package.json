@@ -1,17 +1,23 @@
 {
   "name": "heavenrp",
   "version": "1.0.0",
-  "description": "Gère les items dans le RP.",
+  "description": "",
   "main": "index.js",
-  "scripts": {
-    "start": "nodemon . --ignore '*.json'",
-    "run": "node ."
-  },
-  "author": "LeTomium",
-  "license": "ISC",
   "dependencies": {
-    "discord.js": "^12.3.1",
-    "fs": "0.0.1-security",
-    "simple-database-json": "^1.0.2"
-  }
+    "discord.js": "^12.5.3",
+    "sqlite3": "^5.0.2"
+  },
+  "scripts": {
+    "test": "node ."
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/tomleblais/HeavenRP.git"
+  },
+  "author": "Tombé",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/tomleblais/HeavenRP/issues"
+  },
+  "homepage": "https://github.com/tomleblais/HeavenRP#readme"
 }
