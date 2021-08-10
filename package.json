@@ -8,7 +8,7 @@
     "sqlite3": "^5.0.2"
   },
   "scripts": {
-    "test": "node ."
+    "start": "node ."
   },
   "repository": {
     "type": "git",

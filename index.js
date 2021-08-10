@@ -6,7 +6,6 @@ const { PermissionCommandError, TypeArgumentError, RangeArgumentError, Subcomman
 const Util = require("./src/util")
 
 const config = require("./config/default.json")
-const token = require("./config/token.json")
 
 const client = new Discord.Client()
 client.commands = new Discord.Collection()
@@ -240,4 +239,4 @@ client.on("message", msg => {
     })
 })
 
-client.login(token.id)
+client.login(process.env.TOKEN)
